@@ -1,18 +1,22 @@
 import numpy as np
 import pandas as pd
 
-# สร้างข้อมูลตัวอย่าง (หรือจะโหลดจากไฟล์ Kaggle จริงก็ได้)
-data = pd.DataFrame({
-    'Age': [25, 30, 50],
-    'Salary': [30000, 45000, 120000],
-    'Score': [50, 80, 90]
-})
+# โหลดข้อมูลจากไฟล์ fruit.csv
+data = pd.read_csv('fruit.csv')
 
+# แสดงข้อมูลบางส่วนก่อน Normalize
 print("🎯 ข้อมูลก่อน Normalize:")
-print(data)
+print(data[['fruit_name', 'mass', 'width', 'height', 'color_score']].head())
+
+# เลือกเฉพาะ columns ที่ต้อง Normalize
+features = data[['mass', 'width', 'height', 'color_score']]
 
 # ใช้ Min-Max Normalization
-normalized_data = (data - data.min()) / (data.max() - data.min())
+normalized_data = (features - features.min()) / (features.max() - features.min())
 
+# รวมกับชื่อผลไม้ เพื่อดูว่าแต่ละแถวคือผลไม้อะไร
+normalized_data['fruit_name'] = data['fruit_name']
+
+# แสดงผลลัพธ์
 print("\n✅ ข้อมูลหลัง Normalize (Min-Max):")
-print(normalized_data)
+print(normalized_data.head())
