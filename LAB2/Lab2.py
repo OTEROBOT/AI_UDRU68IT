@@ -3,39 +3,45 @@ from sklearn.tree import DecisionTreeClassifier, plot_tree, export_text
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 
-# โหลดข้อมูลจากไฟล์ CSV
-df = pd.read_csv("Iris.csv")  # ไฟล์ต้องอยู่ในโฟลเดอร์เดียวกัน
+# 1. โหลดข้อมูลจาก CSV
+df = pd.read_csv('winequality-red.csv', sep=';')
+print("📋 ข้อมูลตัวอย่าง:")
+print(df.head(), "\n")
+print("📊 กระจายคะแนนคุณภาพ:")
+print(df['quality'].value_counts().sort_index(), "\n")
 
-# ลบคอลัมน์ Id ทิ้ง เพราะไม่ใช่ Feature
-df = df.drop(columns=["Id"])
+# 2. จัด label ให้เป็น classification แบบง่าย
+#    แบ่งคุณภาพ >=7 = 'good', else 'not good'
+df['quality_label'] = df['quality'].apply(lambda x: 'good' if x >= 7 else 'not good')
 
-# แยก Feature และ Label
-X = df.drop(columns=["Species"])
-y = df["Species"]
+# 3. แยก feature และ label
+X = df.drop(columns=['quality', 'quality_label'])
+y = df['quality_label']
 
-# แบ่งข้อมูลเป็นชุด Train/Test
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42)
+# 4. แบ่งชุด train/test
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42)
 
-# สร้างโมเดลต้นไม้ตัดสินใจ
-clf = DecisionTreeClassifier(criterion="entropy")
+# 5. ฝึกโมเดล Decision Tree
+clf = DecisionTreeClassifier(criterion='entropy', random_state=0)
 clf.fit(X_train, y_train)
 
-# แสดงต้นไม้
-plt.figure(figsize=(10, 6))
+# 6. วัดความแม่นยำ
+acc = clf.score(X_test, y_test)
+print(f"🎯 Accuracy ของโมเดล: {acc*100:.2f}%\n")
+
+# 7. แสดงต้นไม้
+plt.figure(figsize=(16,10))
 plot_tree(clf, filled=True, feature_names=X.columns, class_names=clf.classes_)
-plt.title("🌳 ต้นไม้ตัดสินใจจากไฟล์ Iris.csv")
+plt.title('🌳 Decision Tree: Wine Quality (red wine)')
 plt.show()
 
-# ความแม่นยำ
-accuracy = clf.score(X_test, y_test)
-print(f"🎯 ความแม่นยำของโมเดล: {accuracy*100:.2f}%")
-
-# ทำนายข้อมูลใหม่
-sample = [[5.1, 3.5, 1.4, 0.2]]
-prediction = clf.predict(sample)
-print(f"\n🔮 ทำนายจากตัวอย่าง {sample} → {prediction[0]}")
-
-# แสดงกฎแบบ if-then
+# 8. แสดงกฎแบบ if-then
 rules = export_text(clf, feature_names=list(X.columns))
-print("\n📜 กฎจากต้นไม้ตัดสินใจ:")
+print("📜 กฎจากต้นไม้:")
 print(rules)
+
+# 9. ทำนายจากข้อมูลใหม่ (ตัวอย่างแถวแรก)
+sample = X.iloc[[0]]
+pred = clf.predict(sample)
+print(f"\n🔮 ตัวอย่างแรก {sample.values.tolist()[0]} → ทำนาย: {pred[0]}")
