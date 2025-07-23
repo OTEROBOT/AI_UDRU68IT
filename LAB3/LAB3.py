@@ -8,11 +8,13 @@ from sklearn.metrics import accuracy_score
 # โหลดชุดข้อมูล Wine Quality จากไฟล์ท้องถิ่น (ต้องวาง winequality-red.csv ในโฟลเดอร์นี้)
 try:
     data = pd.read_csv('winequality-red.csv', sep=',')
-    print("โหลดไฟล์สำเร็จ!")
-    print("ข้อมูลตัวอย่าง 5 แถวแรก:", data.head().to_string())
+    print("โหลดไฟล์สำเร็จ!\n")
+    print("ข้อมูลตัวอย่าง 5 แถวแรก:\n")
+    print(data.head().to_string(index=False))
 except FileNotFoundError:
     print("ข้อผิดพลาด: ไม่พบไฟล์ 'winequality-red.csv' กรุณาดาวน์โหลดจาก https://www.kaggle.com/datasets/uciml/red-wine-quality-cortez-et-al-2009 และวางในโฟลเดอร์นี้")
     exit()
+
 
 # ตรวจสอบว่าคอลัมน์ 'quality' อยู่ในข้อมูล
 if 'quality' not in data.columns:
@@ -59,7 +61,9 @@ user_input_data = np.array([[fixed_acidity, volatile_acidity, citric_acid, resid
                             free_sulfur_dioxide, total_sulfur_dioxide, density, pH, sulphates, alcohol]])
 
 # ทำนายผลสำหรับข้อมูลที่ผู้ใช้ป้อน
-predicted_user_label = nb_model.predict(user_input_data)
+user_input_df = pd.DataFrame(user_input_data, columns=X.columns)
+predicted_user_label = nb_model.predict(user_input_df)
+
 print('ผลการทำนายสำหรับข้อมูลที่คุณกรอก:', predicted_user_label[0])
 
 # ลิงก์ชุดข้อมูล
