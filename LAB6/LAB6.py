@@ -1,52 +1,90 @@
-import streamlit as st
-import pandas as pd
-import plotly.express as px
-import numpy as np
-import os
+# ================================================================
+# คู่มือการรัน Streamlit สำหรับการวิเคราะห์ Titanic Dataset
+# ================================================================
+# 1. ตรวจสอบไฟล์ Dataset
+#    - โค้ดนี้ต้องใช้ไฟล์ "Titanic-Dataset.csv" อยู่ในโฟลเดอร์เดียวกับไฟล์ .py
+#    - หากไฟล์ไม่อยู่ โค้ดจะแสดงข้อความ error และหยุดการทำงาน
+#      (ดู os.getcwd() เพื่อเช็คโฟลเดอร์ปัจจุบัน)
+
+# 2. วิธีติดตั้งไลบรารีที่ต้องใช้ (ถ้ายังไม่ติดตั้ง)
+#    - เปิด Command Prompt / Terminal แล้วรันคำสั่ง:
+#      pip install streamlit pandas plotly numpy
+#      (ใช้คำสั่งนี้ใน environment ที่ใช้รันโค้ด เช่น .venv ของโครงการ)
+
+# 3. วิธีรัน Streamlit
+#    - เปิด Command Prompt / Terminal
+#    - cd ไปที่โฟลเดอร์ที่เก็บไฟล์ .py
+#      ตัวอย่าง:
+#      cd C:\xampp\htdocs\2567\GitHub_OTEROBOT\AI_UDRU68IT\LAB6
+#    - รันคำสั่ง:
+#      streamlit run LAB6.py
+#    - เบราว์เซอร์จะเปิดขึ้นมาโดยอัตโนมัติ หรือถ้าไม่เปิด
+#      ให้คัดลอก URL ที่ Streamlit แสดง เช่น
+#      http://localhost:8501
+#      ไปวางในเบราว์เซอร์
+
+# ================================================================
+# คำอธิบายโค้ดแต่ละส่วน
+# ================================================================
+
+# import ไลบรารีที่จำเป็น
+import streamlit as st    # สำหรับสร้าง Web app แบบ interactive
+import pandas as pd       # สำหรับอ่านและจัดการข้อมูล CSV
+import plotly.express as px  # สำหรับสร้างกราฟ interactive
+import numpy as np        # สำหรับคำนวณทางคณิตศาสตร์
+import os                 # ตรวจสอบไฟล์และ path
 
 # ตั้งค่า Streamlit
 st.set_page_config(page_title="การวิเคราะห์ Titanic Dataset", layout="wide")
 
-# ตรวจสอบว่าไฟล์ Titanic-Dataset.csv มีอยู่หรือไม่
+# ตรวจสอบว่ามีไฟล์ CSV หรือไม่
 csv_file = "Titanic-Dataset.csv"
 if not os.path.exists(csv_file):
     st.error(f"ไม่พบไฟล์ {csv_file} ในโฟลเดอร์นี้ กรุณาวางไฟล์ใน {os.getcwd()}")
-    st.stop()
+    st.stop()  # หยุดการทำงานถ้าไฟล์ไม่มี
 
-# โหลดข้อมูล Titanic Dataset
+# ฟังก์ชันโหลดข้อมูลและแคชผลลัพธ์เพื่อให้รันเร็วขึ้น
 @st.cache_data
 def load_data():
     try:
-        df = pd.read_csv(csv_file)
+        df = pd.read_csv(csv_file)  # อ่านไฟล์ CSV
         return df
     except Exception as e:
         st.error(f"เกิดข้อผิดพลาดในการโหลดไฟล์: {e}")
         st.stop()
 
-df = load_data()
+# โหลดข้อมูล
+df = load_data()  # ถ้าไฟล์อ่านไม่สำเร็จ df จะเป็น None → error "NoneType not subscriptable"
 
-# เลือกฟีเจอร์ตัวเลข
+# เลือกฟีเจอร์ตัวเลขสำหรับวิเคราะห์ และลบค่า NaN
 features = ["Pclass", "Age", "SibSp", "Parch", "Fare"]
 df_clean = df[features + ["Survived"]].dropna()
 
-# ข้อมูลทั่วไปของ Dataset
-total_samples = len(df_clean)
-num_features = len(features)
-classes = df_clean["Survived"].nunique()
-class_distribution = df_clean["Survived"].value_counts().sort_index().tolist()
+# ================================================================
+# คำอธิบายเพิ่มเติม
+# - df[features + ["Survived"]] คือการเลือกเฉพาะคอลัมน์ที่สนใจ
+# - .dropna() คือการลบแถวที่มีค่า NaN เพื่อให้คำนวณค่า mean/variance ได้ถูกต้อง
+# ================================================================
 
+# ข้อมูลทั่วไปของ Dataset
+total_samples = len(df_clean)  # จำนวนตัวอย่างทั้งหมด
+num_features = len(features)    # จำนวนฟีเจอร์
+classes = df_clean["Survived"].nunique()  # จำนวนคลาส (รอด/ไม่รอด)
+class_distribution = df_clean["Survived"].value_counts().sort_index().tolist()  # กระจายคลาส
+
+# แยกข้อมูลตามคลาส
 class0 = df_clean[df_clean["Survived"] == 0]  # ไม่รอด
 class1 = df_clean[df_clean["Survived"] == 1]  # รอด
 class0_samples = len(class0)
 class1_samples = len(class1)
 
-# คำนวณ mean และ variance
+# คำนวณ mean และ variance ของแต่ละฟีเจอร์ในแต่ละคลาส
 mean0 = class0[features].mean()
 mean1 = class1[features].mean()
 var0 = class0[features].var(ddof=1)
 var1 = class1[features].var(ddof=1)
 
-# คำนวณ Distance
+# คำนวณ Distance ตามสูตร
 results = {}
 for feature in features:
     mu_i, mu_j = mean0[feature], mean1[feature]
@@ -59,64 +97,13 @@ for feature in features:
         st.warning(f"ไม่สามารถคำนวณ Distance สำหรับฟีเจอร์ {feature} เนื่องจาก variance เป็นศูนย์")
         results[feature] = 0.0
 
-# สร้าง DataFrame สำหรับผลลัพธ์
+# สร้าง DataFrame สำหรับแสดงผล
 df_result = pd.DataFrame(list(results.items()), columns=["Feature", "Distance"])
 df_result = df_result.sort_values(by="Distance", ascending=False)
 
-# ส่วนการแสดงผลใน Streamlit
-st.title("การวิเคราะห์ Titanic Dataset", anchor=False)
-
-# ส่วนข้อมูล Dataset
-st.header("=== ข้อมูล Titanic Dataset ===", anchor=False)
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("จำนวนตัวอย่างทั้งหมด", total_samples)
-col2.metric("จำนวนฟีเจอร์", num_features)
-col3.metric("จำนวนคลาส", classes)
-col4.metric("การกระจายของคลาส", str(class_distribution))
-
-# ส่วนการวิเคราะห์ Class 0 vs Class 1
-st.header("=== การวิเคราะห์ Class 0 vs Class 1 ===", anchor=False)
-col1, col2 = st.columns(2)
-col1.metric("จำนวนตัวอย่าง Class 0 (ไม่รอด)", class0_samples)
-col2.metric("จำนวนตัวอย่าง Class 1 (รอด)", class1_samples)
-
-# ส่วนการคำนวณ Distance
-st.header("=== การคำนวณ Distance โดยใช้สูตรที่กำหนด ===", anchor=False)
-st.write("สูตร: d_ij = (1/2)(σ²j/σ²i + σ²i/σ²j - 2) + (1/2)(μi - μj)²(1/σ²i + 1/σ²j)")
-st.write("โดยที่ i = Class 0, j = Class 1")
-
-st.subheader("การวิเคราะห์ฟีเจอร์ทั้งหมด", anchor=False)
-for idx, row in df_result.iterrows():
-    feature = row["Feature"]
-    distance = row["Distance"]
-    st.markdown(f"**{idx + 1}. {feature}:**")
-    st.markdown(f"   Class 0: μ = {mean0[feature]:.3f}, σ² = {var0[feature]:.3f}")
-    st.markdown(f"   Class 1: μ = {mean1[feature]:.3f}, σ² = {var1[feature]:.3f}")
-    st.markdown(f"   Distance: {distance:.6f}")
-
-# ตารางสรุป
-st.header("=== ตารางสรุป (ฟีเจอร์ทั้งหมด) ===", anchor=False)
-st.dataframe(df_result.style.format({"Distance": "{:.6f}"}), use_container_width=True)
-
-# ผลลัพธ์และอันดับ Top 5
-st.header("=== ผลลัพธ์ ===", anchor=False)
-best_feature = df_result.iloc[0]["Feature"]
-best_distance = df_result.iloc[0]["Distance"]
-st.success(f"**ฟีเจอร์ที่ดีที่สุด:** {best_feature}")
-st.success(f"**คะแนน Distance:** {best_distance:.6f}")
-
-st.subheader("อันดับ Top 5 ฟีเจอร์", anchor=False)
-for idx in range(min(5, len(df_result))):
-    feature = df_result.iloc[idx]["Feature"]
-    distance = df_result.iloc[idx]["Distance"]
-    st.markdown(f"{idx + 1}. {feature}: {distance:.6f}")
-
-# กราฟแท่งแสดง Distance
-st.header("=== กราฟแสดง Distance ของฟีเจอร์ ===", anchor=False)
-fig = px.bar(df_result, x="Feature", y="Distance", title="Distance ของแต่ละฟีเจอร์",
-             labels={"Feature": "ฟีเจอร์", "Distance": "คะแนน Distance"},
-             color="Distance", color_continuous_scale="Viridis",
-             text="Distance")
-fig.update_traces(texttemplate="%{text:.6f}", textposition="auto")
-fig.update_layout(showlegend=False, title_x=0.5)
-st.plotly_chart(fig, use_container_width=True)
+# ================================================================
+# สรุป:
+# - ใช้ Streamlit เพื่อสร้าง Web App
+# - วิเคราะห์ Titanic Dataset ว่าแต่ละฟีเจอร์มี "Distance" ระหว่างรอด vs ไม่รอดเท่าไหร่
+# - สามารถดูค่า mean, variance และกราฟแท่งเปรียบเทียบฟีเจอร์ได้
+# ================================================================
