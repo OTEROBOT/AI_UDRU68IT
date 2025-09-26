@@ -3,130 +3,133 @@
 # ----------------------------
 # Import ไลบรารีที่ใช้ (ตามบทเรียน)
 # ----------------------------
-import numpy as np  # (บท 2 การแทนปัญหา) ใช้คำนวณเชิงตัวเลขและเมทริกซ์
-import pandas as pd  # (บท 1 ข้อมูลและการเตรียมข้อมูล) จัดการ dataset และสร้างตาราง
-import tensorflow as tf  # (บท 10 Neural Network) สำหรับสร้างและฝึก ANN
-from sklearn.model_selection import train_test_split, cross_val_score  # (บท 7 การทดสอบโมเดล) สำหรับ train/test และ Cross-Validation
-from sklearn.preprocessing import StandardScaler, OneHotEncoder  # (บท 1) การปรับมาตรฐานและการเข้ารหัส Label
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, adjusted_rand_score  # (บท 7) วัดผลการทำงานโมเดล
-from sklearn.naive_bayes import GaussianNB  # (บท 5 Naive Bayes) ตัวจำแนกเชิงความน่าจะเป็น
-from sklearn.tree import DecisionTreeClassifier  # (บท 4 Decision Tree) ตัวจำแนกต้นไม้
-from sklearn.neighbors import KNeighborsClassifier  # (บท 3 & 6 KNN) ตัวจำแนก K-Nearest Neighbors
-from sklearn.cluster import KMeans  # (บท 9 Clustering) การจัดกลุ่มข้อมูล K-Means
-from sklearn.feature_selection import SelectKBest, f_classif  # (บท 8 Feature Selection) เลือกคุณลักษณะที่ดีที่สุด
+import numpy as np  # (บท 2 การแทนปัญหา) ใช้สำหรับคำนวณเชิงตัวเลข, เวกเตอร์, เมทริกซ์
+import pandas as pd  # (บท 1 ข้อมูลและการเตรียมข้อมูล) ใช้สำหรับโหลดและจัดการ dataset, สร้างตาราง
+import tensorflow as tf  # (บท 10 Neural Network) ใช้สร้างและฝึก Artificial Neural Network (ANN)
+from sklearn.model_selection import train_test_split, cross_val_score  # (บท 7 การทดสอบโมเดล) แบ่ง train/test และทำ Cross-Validation
+from sklearn.preprocessing import StandardScaler, OneHotEncoder  # (บท 1) StandardScaler ปรับค่า feature ให้อยู่ในมาตรฐานเดียวกัน, OneHot แปลง label
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, adjusted_rand_score  # (บท 7) ฟังก์ชันวัดผลโมเดล
+from sklearn.naive_bayes import GaussianNB  # (บท 5 Naive Bayes) โมเดลความน่าจะเป็น
+from sklearn.tree import DecisionTreeClassifier  # (บท 4 Decision Tree) โมเดลต้นไม้ตัดสินใจ
+from sklearn.neighbors import KNeighborsClassifier  # (บท 3 + 6 KNN) โมเดลหาเพื่อนบ้านที่ใกล้ที่สุด
+from sklearn.cluster import KMeans  # (บท 9 Clustering) การจัดกลุ่ม K-Means
+from sklearn.feature_selection import SelectKBest, f_classif  # (บท 8 Feature Selection) เลือก feature ที่ดีที่สุดด้วย ANOVA F-test
 
 # ----------------------------
 # ฟังก์ชันช่วย (บท 7 การทดสอบโมเดล)
 # ----------------------------
 def compute_metrics(y_true, y_pred):  
-    # คำนวณตัวชี้วัด Accuracy, Precision, Recall, F1
-    acc = accuracy_score(y_true, y_pred)
-    prec = precision_score(y_true, y_pred, average="macro")
-    rec = recall_score(y_true, y_pred, average="macro")
-    f1 = f1_score(y_true, y_pred, average="macro")
-    return {"Accuracy": acc, "Precision": prec, "Recall": rec, "F1 Score": f1}
+    # ฟังก์ชันนี้รับค่าจริง (y_true) และค่าที่โมเดลทำนาย (y_pred)
+    # คำนวณตัวชี้วัด 4 ตัว: Accuracy, Precision, Recall, F1
+    acc = accuracy_score(y_true, y_pred)  # Accuracy = จำนวนทายถูก / จำนวนทั้งหมด
+    prec = precision_score(y_true, y_pred, average="macro")  # Precision = ทายว่า "ใช่" แล้วถูกกี่ %
+    rec = recall_score(y_true, y_pred, average="macro")  # Recall = ของจริงทั้งหมด โมเดลทายเจอครบกี่ %
+    f1 = f1_score(y_true, y_pred, average="macro")  # F1 = ค่ากลางของ Precision + Recall
+    return {"Accuracy": acc, "Precision": prec, "Recall": rec, "F1 Score": f1}  # คืนค่าเป็น dictionary
 
 def print_metrics_html(method_name, metrics):  
-    # แปลงผลลัพธ์ของโมเดลเป็นตาราง HTML
-    df = pd.DataFrame([metrics], index=[method_name])
+    # ฟังก์ชันนี้รับชื่อวิธี (method_name) + ผลลัพธ์ metric
+    # สร้าง DataFrame (ตาราง) แล้วแปลงเป็น HTML เพื่อโชว์บนเว็บ
+    df = pd.DataFrame([metrics], index=[method_name])  
     return df.to_html(float_format="%.4f", classes="table table-striped table-bordered table-hover", justify="center", border=1)
 
 # ----------------------------
 # โหลด Dataset Haberman (บท 1 ข้อมูลและการเตรียมข้อมูล)
 # ----------------------------
-data = pd.read_csv("haberman.csv", header=None)  # โหลด CSV
-X = data.iloc[:, :-1].values  # Features (age, year, nodes)
-y = data.iloc[:, -1].values   # Label (1 = อยู่รอด, 2 = ไม่รอด)
+data = pd.read_csv("haberman.csv", header=None)  # โหลดไฟล์ haberman.csv (ไม่มี header)
+X = data.iloc[:, :-1].values  # Features = คอลัมน์แรกถึงก่อนสุดท้าย (3 ตัว: อายุ, ปีผ่าตัด, จำนวนต่อมน้ำเหลือง)
+y = data.iloc[:, -1].values   # Label = คอลัมน์สุดท้าย (1 = อยู่รอด, 2 = ไม่รอด)
 
-# แบ่ง train/test 70/30
+# แบ่งข้อมูล train/test → 70% train, 30% test
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.3, random_state=42, stratify=y)
+    X, y, test_size=0.3, random_state=42, stratify=y)  # stratify=y เพื่อให้ class 1/2 กระจายใกล้เคียงกันทั้ง train/test
 
 # Scaling ข้อมูล (Normalize)
-scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)
-X_test_scaled = scaler.transform(X_test)
+scaler = StandardScaler()  # StandardScaler: ทำให้แต่ละ feature มี mean=0, std=1
+X_train_scaled = scaler.fit_transform(X_train)  # fit+transform ข้อมูลฝึก
+X_test_scaled = scaler.transform(X_test)  # ใช้ scaler ที่เรียนรู้แล้ว แปลง test
 
-# One-Hot Encoding สำหรับ ANN (บท 10)
-encoder = OneHotEncoder(sparse_output=False)
-y_train_onehot = encoder.fit_transform(y_train.reshape(-1, 1))
-y_test_onehot = encoder.transform(y_test.reshape(-1, 1))
+# One-Hot Encoding สำหรับ ANN (บท 10 Neural Network)
+encoder = OneHotEncoder(sparse_output=False)  # OneHot = เปลี่ยน class 1,2 → [1,0], [0,1]
+y_train_onehot = encoder.fit_transform(y_train.reshape(-1, 1))  # แปลง y_train
+y_test_onehot = encoder.transform(y_test.reshape(-1, 1))  # แปลง y_test
 
 # ----------------------------
 # 1–2. Representation & Problem Solving (บท 2)
 # ----------------------------
 def create_adjacency_matrix(X, k=3):  
-    # สร้าง adjacency matrix แทนโครงสร้างความใกล้กัน
-    n_samples = X.shape[0]
-    adj_matrix = np.zeros((n_samples, n_samples))
-    for i in range(n_samples):
-        distances = np.sum((X - X[i])**2, axis=1)  # ระยะ Euclidean
-        nearest_indices = np.argsort(distances)[1:k+1]  # หาตัวใกล้สุด k ตัว
-        adj_matrix[i, nearest_indices] = 1
-    return adj_matrix
+    # ฟังก์ชันนี้สร้าง Adjacency Matrix (กราฟแสดงความใกล้กันของข้อมูล)
+    n_samples = X.shape[0]  # จำนวนแถวใน X = จำนวน sample
+    adj_matrix = np.zeros((n_samples, n_samples))  # สร้าง matrix ศูนย์ (n x n)
+    for i in range(n_samples):  # loop ทุก sample
+        distances = np.sum((X - X[i])**2, axis=1)  # คำนวณระยะ Euclidean (square) ระหว่าง sample i กับทุกตัว
+        nearest_indices = np.argsort(distances)[1:k+1]  # หาค่า index ที่ใกล้ที่สุด k ตัว (ไม่เอาตัวเอง)
+        adj_matrix[i, nearest_indices] = 1  # กำหนดค่า 1 ที่ตำแหน่งเพื่อนบ้าน
+    return adj_matrix  # คืนค่า adjacency matrix
 
-adj_matrix = create_adjacency_matrix(X_train_scaled)
-adj_html = "<h3>การแทนปัญหาและการแก้ปัญหา (Adjacency Matrix)</h3>"
+adj_matrix = create_adjacency_matrix(X_train_scaled)  # สร้าง adjacency matrix ของ training set
+adj_html = "<h3>การแทนปัญหาและการแก้ปัญหา (Adjacency Matrix)</h3>"  # HTML สำหรับโชว์ผล
 
 # ----------------------------
 # 8. Feature Selection (บท 8)
 # ----------------------------
-selector = SelectKBest(score_func=f_classif, k=2)  
-X_train_selected = selector.fit_transform(X_train_scaled, y_train)
-X_test_selected = selector.transform(X_test_scaled)
+selector = SelectKBest(score_func=f_classif, k=2)  # เลือก feature ที่สำคัญที่สุด 2 ตัว จากทั้งหมด 3
+X_train_selected = selector.fit_transform(X_train_scaled, y_train)  # fit+transform ข้อมูลฝึก
+X_test_selected = selector.transform(X_test_scaled)  # transform ข้อมูลทดสอบ
 
 # ----------------------------
 # 5. Naive Bayes (บท 5)
 # ----------------------------
-nb = GaussianNB()
-nb.fit(X_train_selected, y_train)
-nb_pred = nb.predict(X_test_selected)
-nb_metrics = compute_metrics(y_test, nb_pred)
+nb = GaussianNB()  # สร้างโมเดล Naive Bayes
+nb.fit(X_train_selected, y_train)  # ฝึกโมเดลด้วยข้อมูล train
+nb_pred = nb.predict(X_test_selected)  # ทำนาย test set
+nb_metrics = compute_metrics(y_test, nb_pred)  # วัดผลด้วย Accuracy, Precision, Recall, F1
 
 # ----------------------------
 # 4. Decision Tree (บท 4)
 # ----------------------------
-dt = DecisionTreeClassifier(random_state=42)
-dt.fit(X_train_selected, y_train)
-dt_pred = dt.predict(X_test_selected)
-dt_metrics = compute_metrics(y_test, dt_pred)
+dt = DecisionTreeClassifier(random_state=42)  # สร้างโมเดล Decision Tree
+dt.fit(X_train_selected, y_train)  # ฝึก
+dt_pred = dt.predict(X_test_selected)  # ทำนาย
+dt_metrics = compute_metrics(y_test, dt_pred)  # วัดผล
 
 # ----------------------------
 # 3 & 6. KNN (บท 3 + 6)
 # ----------------------------
-knn = KNeighborsClassifier(n_neighbors=5)
-knn.fit(X_train_selected, y_train)
-knn_pred = knn.predict(X_test_selected)
-knn_metrics = compute_metrics(y_test, knn_pred)
+knn = KNeighborsClassifier(n_neighbors=5)  # ใช้ K=5 (หาเพื่อนบ้านใกล้สุด 5 ตัว)
+knn.fit(X_train_selected, y_train)  # ฝึก
+knn_pred = knn.predict(X_test_selected)  # ทำนาย
+knn_metrics = compute_metrics(y_test, knn_pred)  # วัดผล
 
 # ----------------------------
 # 9. K-Means Clustering (บท 9)
 # ----------------------------
-kmeans = KMeans(n_clusters=2, random_state=42)
-kmeans.fit(X_train_selected)
-cluster_labels = kmeans.predict(X_test_selected)
-cluster_score = adjusted_rand_score(y_test, cluster_labels)
+kmeans = KMeans(n_clusters=2, random_state=42)  # แบ่งกลุ่มเป็น 2 cluster
+kmeans.fit(X_train_selected)  # ฝึก KMeans ด้วย training set
+cluster_labels = kmeans.predict(X_test_selected)  # จัดกลุ่ม test set
+cluster_score = adjusted_rand_score(y_test, cluster_labels)  # วัดผลการ clustering ด้วย ARI
 cluster_html = f"<h3>Clustering (K-Means)</h3><p>Adjusted Rand Score: {cluster_score:.4f}</p>"
 
 # ----------------------------
 # 10. ANN (บท 10 Neural Network)
 # ----------------------------
-ann = tf.keras.Sequential([
-    tf.keras.layers.Input(shape=(2,)),  # input 2 features
-    tf.keras.layers.Dense(10, activation="relu"),  # hidden layer
-    tf.keras.layers.Dense(2, activation="softmax")  # output layer
+ann = tf.keras.Sequential([  # สร้างโมเดลแบบ Sequential
+    tf.keras.layers.Input(shape=(2,)),  # input = 2 feature (จาก Feature Selection)
+    tf.keras.layers.Dense(10, activation="relu"),  # hidden layer มี 10 นิวรอน, ใช้ ReLU
+    tf.keras.layers.Dense(2, activation="softmax")  # output layer มี 2 นิวรอน (class 1/2), ใช้ softmax
 ])
-ann.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
-ann.fit(X_train_selected, y_train_onehot, epochs=100, batch_size=5, verbose=0)
+ann.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])  # กำหนด loss + optimizer
+ann.fit(X_train_selected, y_train_onehot, epochs=100, batch_size=5, verbose=0)  # ฝึก ANN 100 รอบ (batch = 5)
 
-ann_pred_onehot = ann.predict(X_test_selected)
-ann_pred = np.argmax(ann_pred_onehot, axis=1) + 1  # บวก 1 เพื่อให้ label ตรงกับ dataset
-ann_metrics = compute_metrics(y_test, ann_pred)
+ann_pred_onehot = ann.predict(X_test_selected)  # ให้โมเดลทำนาย (output = ความน่าจะเป็น)
+ann_pred = np.argmax(ann_pred_onehot, axis=1) + 1  # แปลง one-hot → class (บวก 1 ให้ตรงกับ label 1/2)
+ann_metrics = compute_metrics(y_test, ann_pred)  # วัดผล
 
 # ----------------------------
 # 7. Cross Validation (บท 7)
 # ----------------------------
-cv_scores = cross_val_score(DecisionTreeClassifier(random_state=42), X_train_selected, y_train, cv=5)
+cv_scores = cross_val_score(DecisionTreeClassifier(random_state=42), X_train_selected, y_train, cv=5)  
+# Cross-validation 5 fold (Decision Tree)
 cv_html = f"<h3>การทดสอบโมเดล (Cross-Validation บน Decision Tree)</h3><p>Mean CV Score: {cv_scores.mean():.4f} (+/- {cv_scores.std()*2:.4f})</p>"
 
 # ----------------------------
@@ -176,17 +179,18 @@ html_output = """
 <h1 class="text-center">🌌 ผลลัพธ์การเปรียบเทียบวิธี AI (Haberman Dataset) 🌌</h1>
 <h2>🔮 วิธีการจำแนก</h2>
 """
-html_output += print_metrics_html("Naive Bayes", nb_metrics)
-html_output += print_metrics_html("Decision Tree", dt_metrics)
-html_output += print_metrics_html("KNN", knn_metrics)
-html_output += print_metrics_html("ANN", ann_metrics)
+html_output += print_metrics_html("Naive Bayes", nb_metrics)  # ตารางผล Naive Bayes
+html_output += print_metrics_html("Decision Tree", dt_metrics)  # ตารางผล Decision Tree
+html_output += print_metrics_html("KNN", knn_metrics)  # ตารางผล KNN
+html_output += print_metrics_html("ANN", ann_metrics)  # ตารางผล ANN
 
-html_output += adj_html
-html_output += cluster_html
-html_output += cv_html
+html_output += adj_html  # โชว์ adjacency matrix
+html_output += cluster_html  # โชว์ผล K-Means
+html_output += cv_html  # โชว์ผล Cross-validation
 html_output += "</div></body></html>"
 
-with open("haberman_results.html", "w", encoding="utf-8") as f:
+with open("haberman_results.html", "w", encoding="utf-8") as f:  
+    # บันทึกผลทั้งหมดเป็นไฟล์ HTML
     f.write(html_output)
 
 print("✅ บันทึกผลลัพธ์ HTML ไปที่ 'haberman_results.html' เปิดดูในเบราว์เซอร์ได้เลย")
